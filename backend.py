@@ -17,21 +17,33 @@ from langgraph.types import interrupt, Command
 GoogleModel = Literal["gemini-2.5-pro", "gemini-2.5-flash"]
 
 class WhispererChatMessage(TypedDict):
+    """
+    Simplified langgraph message.
+    """
     role: Literal["user", "assistant", "tool"]
     content: str
 
 
 class WhispererChatResult(TypedDict):
+    """
+    Chat consisting of simplified messages, used by frontend.
+    """
     messages: List[WhispererChatMessage]
     interrupt: Any
 
 
 class WhispererConfirmationInterrupt(TypedDict):
+    """
+    Simple object containing query to display to a user in the frontend.
+    """
     query: str
 
 
 class Graph:
     def __init__(self, llm: BaseChatModel) -> None:
+        """
+        Given model, build an inference graph.
+        """
         # Initialize model
         self.llm = llm.bind_tools([StructuredTool.from_function(self._get_weather)])
 
@@ -52,7 +64,9 @@ class Graph:
 
 
     def invoke(self, human_message: str) -> WhispererChatResult:
-        """Run the graph with given input and return the result"""
+        """
+        Run the graph with given input and return the result
+        """
         # Runt the graph
         response = self.graph.invoke(
             {"messages" : [HumanMessage(content=human_message)]},
@@ -69,13 +83,12 @@ class Graph:
             "messages" : messages,
             "interrupt" : response.get("__interrupt__", None)
         }
-    # TODO: Maybe convert interrupt to something that frontend will know how to
-    # render, custom type/dict
-    # TODO: ConfirmationDialog
 
 
     def resume(self, value: Any):
-        """Resume interrupted graph and return the result"""
+        """
+        Resume interrupted graph and return the result
+        """
         # Resume interrupted graph
         response = self.graph.invoke(
             Command(resume=value),
@@ -95,7 +108,9 @@ class Graph:
 
 
     def _get_weather(self, city: str) -> str:
-        """Use this tool to get weather data in given city"""
+        """
+        Use this tool to get weather data in given city
+        """
         confirmation_interrupt: WhispererConfirmationInterrupt = {
             "query" : f"Do You allow for weather lookup in the city {city}?"
         }
@@ -116,6 +131,9 @@ class Graph:
             self,
             message: HumanMessage | AIMessage | ToolMessage
     ) -> WhispererChatMessage:
+        """
+        Convert langgraph message to simplified format used by frontend.
+        """
         role: Literal["user", "assistant", "tool"] = "tool"
         if isinstance(message, HumanMessage):
             role = "user"
